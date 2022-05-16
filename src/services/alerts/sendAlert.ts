@@ -3,7 +3,6 @@ import { Data } from "@tago-io/sdk/out/common/common.types";
 import { UserInfo } from "@tago-io/sdk/out/modules/Account/run.types";
 import { TagoContext } from "@tago-io/sdk/out/modules/Analysis/analysis.types";
 import { DataToSend } from "@tago-io/sdk/out/modules/Device/device.types";
-import checkAndChargeUsage from "../plan/checkAndChargeUsage";
 
 interface IMessageDetail {
   device_name: string;
@@ -61,66 +60,39 @@ async function sendAlert(account: Account, context: TagoContext, org_id: string,
   const to_dispatch_qty = users_info.length;
 
   if (type.includes("notification_run")) {
-    const has_service_limit = await checkAndChargeUsage(account, context, org_id, to_dispatch_qty, "notification_run");
-
-    if (has_service_limit) {
-      users_info.forEach((user) => {
-        account.run.notificationCreate(user.id, {
-          message,
-          title: "Alert Trigger",
-        });
+    users_info.forEach((user) => {
+      account.run.notificationCreate(user.id, {
+        message,
+        title: "Alert Trigger",
       });
-    } else {
-      await org_dev.sendData({
-        variable: "plan_status",
-        value: `Attempt to send ${to_dispatch_qty} alert(s) was not successful. No notification service limit available, check your service usage at "Info" to learn more about your plan status.`,
-      });
-    }
+    });
   }
 
   if (type.includes("email")) {
-    const has_service_limit = await checkAndChargeUsage(account, context, org_id, to_dispatch_qty, "email");
+    const email = new Services({ token: context.token }).email;
 
-    if (has_service_limit) {
-      const email = new Services({ token: context.token }).email;
-
-      email.send({
-        to: users_info.map((x) => x.email).join(","),
-        template: {
-          name: "email_alert",
-          params: {
-            device_name: device_info.name,
-            alert_message: message,
-          },
+    email.send({
+      to: users_info.map((x) => x.email).join(","),
+      template: {
+        name: "email_alert",
+        params: {
+          device_name: device_info.name,
+          alert_message: message,
         },
-      });
-    } else {
-      await org_dev.sendData({
-        variable: "plan_status",
-        value: `Attempt to send ${to_dispatch_qty} alert(s) was not successful. No email service limit available, check your service usage at "Info" to learn more about your plan status.`,
-      });
-    }
+      },
+    });
   }
 
   if (type.includes("sms")) {
-    const has_service_limit = await checkAndChargeUsage(account, context, org_id, to_dispatch_qty, "sms");
-
-    if (has_service_limit) {
-      users_info.forEach((user) => {
-        const smsService = new Services({ token: context.token }).sms;
-        smsService
-          .send({
-            message,
-            to: user.phone,
-          })
-          .then((msg) => console.log(msg));
-      });
-    } else {
-      await org_dev.sendData({
-        variable: "plan_status",
-        value: `Attempt to send ${to_dispatch_qty} alert(s) was not successful. No SMS service limit available, check your service usage at "Info" to learn more about your plan status.`,
-      });
-    }
+    users_info.forEach((user) => {
+      const smsService = new Services({ token: context.token }).sms;
+      smsService
+        .send({
+          message,
+          to: user.phone,
+        })
+        .then((msg) => console.log(msg));
+    });
   }
 }
 

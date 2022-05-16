@@ -1,4 +1,5 @@
 import { Device, Types, Utils } from "@tago-io/sdk";
+import { DataToSend } from "@tago-io/sdk/out/modules/Device/device.types";
 import validation from "../../lib/validation";
 import registerUser from "../../lib/registerUser";
 import { parseTagoObject } from "../../lib/data.logic";
@@ -38,10 +39,15 @@ export default async ({ config_dev, context, scope, account, environment }: Rout
   const org_dev = await Utils.getDevice(account, org_id);
 
   //Collecting data
-  const new_user_name = scope.find((x) => x.variable === "new_user_name" || x.variable === "new_orgadmin_name");
-  const new_user_email = scope.find((x) => x.variable === "new_user_email" || x.variable === "new_orgadmin_email");
-  const new_user_access = scope.find((x) => x.variable === "new_user_access" || x.variable === "new_orgadmin_access");
-  const new_user_phone = scope.find((x) => x.variable === "new_user_phone" || x.variable === "new_orgadmin_phone");
+  const new_user_name = scope.find((x) => x.variable === "new_user_name");
+  const new_user_email = scope.find((x) => x.variable === "new_user_email");
+  const new_user_password = scope.find((x) => x.variable === "new_user_password");
+  const new_user_access = scope.find((x) => x.variable === "new_user_access");
+  const new_user_phone = scope.find((x) => x.variable === "new_user_phone");
+
+  const new_user_org = scope.find((x) => x.variable === "new_user_org");
+  const new_user_group = scope.find((x) => x.variable === "new_user_group");
+  const new_user_subgroup = scope.find((x) => x.variable === "new_user_subgroup");
 
   //validation
   const validate = validation("user_validation", org_dev);
@@ -72,25 +78,45 @@ export default async ({ config_dev, context, scope, account, environment }: Rout
     throw validate("#VAL.USER_ALREADY_EXISTS#", "danger");
   }
 
+  // let user_tags: { key: string; value: string }[] = [];
+
+  // if (new_user_access.value === "orgadmin") {
+  //   const array_tags = new_user_org.metadata.sentValues.map((x) => {
+  //     return { key: "organization_id", value: x.value as string };
+  //   });
+
+  //   user_tags = user_tags.concat(array_tags);
+  // }
   //creating user
   const { timezone } = await account.info();
 
   const new_user_data: UserData = {
     name: new_user_name.value as string,
-    email: new_user_email.value as string,
+    email: (new_user_email.value as string).trim(),
     phone: (new_user_phone?.value as string) || "",
+    password: new_user_password.value as string,
     timezone: timezone,
     tags: [
-      {
-        key: "organization_id",
-        value: org_id,
-      },
       {
         key: "access",
         value: new_user_access.value as string,
       },
     ],
   };
+
+  if (new_user_access.value === "orgadmin") {
+    new_user_data.tags = new_user_data.tags.concat(
+      new_user_org.metadata.sentValues.map((x) => {
+        return { key: "organization_id", value: x.value as string };
+      })
+    );
+  } else if (new_user_access.value === "guest") {
+    new_user_data.tags.push({ key: "user_org_id", value: new_user_org.value as string });
+    new_user_data.tags.push({ key: "user_group_id", value: new_user_group.value as string });
+    new_user_subgroup.metadata.sentValues.map((sentValue) => {
+      new_user_data.tags.push({ key: "subgroup_id", value: sentValue.value as string });
+    });
+  }
 
   const { url: run_url } = await account.run.info();
 
@@ -99,38 +125,37 @@ export default async ({ config_dev, context, scope, account, environment }: Rout
     throw validate(msg, "danger");
   });
 
-  let user_access_label = "";
+  const user_data = {
+    user_id: { value: new_user_id as string, metadata: { label: `${new_user_name.value} (${new_user_email.value})` } },
+    user_name: new_user_name.value as string,
+    user_email: new_user_email.value as string,
+    user_phone: (new_user_phone?.value as string) || "",
+    user_access: { value: new_user_access.value as string, metadata: { label: new_user_access.metadata.label } },
+  };
+
+  let user_org: DataToSend;
+  let user_subgroup: DataToSend;
 
   if (new_user_access.value === "admin") {
-    user_access_label = "Administrator";
+    user_org = { variable: "user_org", value: "Full access", group: new_user_id };
+    user_subgroup = { variable: "user_subgroup", value: "Full access", group: new_user_id };
   } else if (new_user_access.value === "orgadmin") {
-    user_access_label = "Organization Admin";
+    user_org = { ...new_user_org, variable: "user_org", group: new_user_id };
+    user_subgroup = { variable: "user_subgroup", value: "All aparments related to the condominium", group: new_user_id };
   } else if (new_user_access.value === "guest") {
-    user_access_label = "Guest";
-  } else {
-    user_access_label = new_user_access.metadata.label;
+    user_org = { ...new_user_org, variable: "user_org", group: new_user_id };
+    user_subgroup = { ...new_user_subgroup, variable: "user_subgroup", group: new_user_id };
   }
 
-  let user_data = parseTagoObject(
-    {
-      user_id: { value: new_user_id as string, metadata: { label: `${new_user_name.value} (${new_user_email.value})` } },
-      user_name: new_user_name.value as string,
-      user_email: (new_user_email.value as string).trim(),
-      user_phone: (new_user_phone?.value as string) || "",
-      user_access: { value: new_user_access.value as string, metadata: { label: user_access_label } },
-    },
-    new_user_id
-  );
+  // if (new_user_access.value === "admin") {
+  //   user_data = user_data.concat([{ variable: "user_admin", value: new_user_id as string, group: new_user_id, metadata: { label: new_user_name.value as string } }]);
+  // }
 
-  if (new_user_access.value === "admin") {
-    user_data = user_data.concat([{ variable: "user_admin", value: new_user_id as string, group: new_user_id, metadata: { label: new_user_name.value as string } }]);
-  }
-
-  //sending to org device
-  org_dev.sendData(user_data);
+  // //sending to org device
+  // org_dev.sendData(parseTagoObject(user_data));
 
   //sending to admin device (settings_device)
-  config_dev.sendData(user_data);
+  await config_dev.sendData(parseTagoObject(user_data, new_user_id).concat([user_org, user_subgroup]));
 
   return validate("#VAL.USER_SUCCESSFULLY_INVITED_AN_EMAIL_WILL_BE_SENT_WITH_THE_CREDENTIALS_TO_THE_NEW_USER#", "success");
 };

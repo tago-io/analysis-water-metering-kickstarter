@@ -4,7 +4,7 @@
  *
  * This analysis is responsible to update organization's plan usage (displayed at Info Dashboard),
  * update the indicators from the organization (total, active and inactive),
- * update sensor's params (last checkin and battery) and update sensors location.
+ * update sensor's last checkin parameter and update sensors location.
  *
  * Status Updater will run when:
  * - When the scheduled action (Status Updater Trigger) triggers this script. (Default 1 minute)
@@ -23,14 +23,14 @@ import { parseTagoObject } from "../lib/data.logic";
 import { fetchDeviceList } from "../lib/fetchDeviceList";
 import { checkinTrigger } from "../services/alerts/checkinAlerts";
 
-async function resolveOrg(account: Account, org: DeviceListItem) {
+async function resolveSubgroup(account: Account, subgroup: DeviceListItem) {
   let total_qty = 0;
   let active_qty = 0;
   let inactivy_qty = 0;
-  const org_id = org.id;
+  const subgroup_id = subgroup.id;
 
   const sensorList = await fetchDeviceList(account, [
-    { key: "organization_id", value: org.id },
+    { key: "subgroup_id", value: subgroup.id },
     { key: "device_type", value: "device" },
   ]);
 
@@ -46,66 +46,22 @@ async function resolveOrg(account: Account, org: DeviceListItem) {
     }
   });
 
-  const org_dev = await Utils.getDevice(account, org_id);
-
-  const org_params = await account.devices.paramList(org_id);
-
-  const plan_email_limit_usage = org_params.find((x) => x.key === "plan_email_limit_usage")?.value || "0";
-  const plan_sms_limit_usage = org_params.find((x) => x.key === "plan_sms_limit_usage")?.value || "0";
-  const plan_notif_limit_usage = org_params.find((x) => x.key === "plan_notif_limit_usage")?.value || "0";
-  const plan_data_retention = org_params.find((x) => x.key === "plan_data_retention")?.value || "0";
+  const subgroup_dev = await Utils.getDevice(account, subgroup_id);
 
   const to_tago = {
     total_qty,
     active_qty,
     inactivy_qty,
-    plan_email_limit_usage,
-    plan_sms_limit_usage,
-    plan_notif_limit_usage,
-    plan_data_retention,
   };
   //CONSIDER INSTEAD OF DELETEING VARIABLES, PLACE A DATA RETENTION RULE AND SHOW THEM IN A HISTORIC GRAPIHC ON THE WIDGET HEADER BUTTON
-  await org_dev.deleteData({
-    variables: ["total_qty", "active_qty", "inactivy_qty", "plan_email_limit_usage", "plan_sms_limit_usage", "plan_notif_limit_usage", "plan_data_retention"],
+  await subgroup_dev.deleteData({
+    variables: ["total_qty", "active_qty", "inactivy_qty"],
     qty: 9999,
   });
-  await org_dev.sendData(parseTagoObject(to_tago));
+  await subgroup_dev.sendData(parseTagoObject(to_tago));
 }
 
-const checkLocation = async (account: Account, device: Device) => {
-  const [location_data] = await device.getData({ variables: "location", qty: 1 });
-
-  if (!location_data) {
-    return "No location sent by device";
-  }
-
-  const device_info = await device.info();
-  const site_id = device_info.tags.find((x) => x.key === "site_id")?.value;
-
-  if (!site_id) {
-    return "No site addressed to the sensor";
-  }
-
-  const site_dev = await Utils.getDevice(account, site_id);
-  const [dev_id] = await site_dev.getData({ variables: "dev_id", groups: device_info.id, qty: 1 });
-  if (
-    (dev_id?.location as any).coordinates[0] === (location_data.location as any).coordinates[0] &&
-    (dev_id?.location as any).coordinates[1] === (location_data.location as any).coordinates[1]
-  ) {
-    return "Same position";
-  }
-  await site_dev.deleteData({ variables: "dev_id", groups: device_info.id, qty: 1 });
-  dev_id.location = location_data.location;
-  delete dev_id.time;
-
-  await site_dev.sendData({ ...dev_id });
-};
-
 async function resolveDevice(context: TagoContext, account: Account, org_id: string, device_id: string) {
-  const device = await Utils.getDevice(account, device_id);
-
-  checkLocation(account, device);
-
   const device_info = await account.devices.info(device_id);
 
   const checkin_date = moment(device_info.last_input as Date);
@@ -117,7 +73,7 @@ async function resolveDevice(context: TagoContext, account: Account, org_id: str
   let diff_hours: string | number = moment().diff(checkin_date, "hours");
 
   if (diff_hours !== diff_hours) {
-    diff_hours = "-";
+    diff_hours = "N/A";
   } //checking for NaN
 
   const device_params = await account.devices.paramList(device_id);
@@ -126,6 +82,33 @@ async function resolveDevice(context: TagoContext, account: Account, org_id: str
   await checkinTrigger(account, context, org_id, { device_id, last_input: device_info.last_input });
 
   await account.devices.paramSet(device_id, { ...dev_lastcheckin_param, value: String(diff_hours), sent: diff_hours >= 24 ? true : false });
+}
+
+async function resolveOrg(account: Account, org_id: string) {
+  let registered_group_qty = 0;
+  let registered_subgroup_qty = 0;
+
+  const group_list = await fetchDeviceList(account, [
+    { key: "organization_id", value: org_id },
+    { key: "device_type", value: "group" },
+  ]);
+
+  const subgroup_list = await fetchDeviceList(account, [
+    { key: "organization_id", value: org_id },
+    { key: "device_type", value: "subgroup" },
+  ]);
+
+  registered_group_qty = group_list.length;
+  registered_subgroup_qty = subgroup_list.length;
+
+  const org_dev = await Utils.getDevice(account, org_id);
+
+  await org_dev.deleteData({ variables: ["total_group_qty", "total_subgroup_qty"] });
+
+  org_dev.sendData([
+    { variable: "total_group_qty", value: registered_group_qty },
+    { variable: "total_subgroup_qty", value: registered_subgroup_qty },
+  ]);
 }
 
 async function handler(context: TagoContext, scope: Data[]): Promise<void> {
@@ -145,7 +128,11 @@ async function handler(context: TagoContext, scope: Data[]): Promise<void> {
 
   const orgList = await fetchDeviceList(account, [{ key: "device_type", value: "organization" }]);
 
-  orgList.map((org) => resolveOrg(account, org));
+  orgList.map((org) => resolveOrg(account, org.id));
+
+  const subgroupList = await fetchDeviceList(account, [{ key: "device_type", value: "subgroup" }]);
+
+  subgroupList.map((subgroup) => resolveSubgroup(account, subgroup));
 
   const sensorList = await fetchDeviceList(account, [{ key: "device_type", value: "device" }]);
 
@@ -164,4 +151,4 @@ async function startAnalysis(context: TagoContext, scope: any) {
   }
 }
 
-export default new Analysis(startAnalysis, { token: "cab6674c-69b2-412f-b82d-ad2d80a21fb8" });
+export default new Analysis(startAnalysis, { token: "5e8803f6-d0ad-451f-9dfd-8c82343044ba" });

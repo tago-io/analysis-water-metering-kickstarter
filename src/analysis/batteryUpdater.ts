@@ -24,7 +24,7 @@ async function resolveDevice(context: TagoContext, account: Account, org_id: str
   const device_params = await account.devices.paramList(device_id);
   const dev_battery_param = device_params.find((param) => param.key === "dev_battery") || { key: "dev_battery", value: "N/A", sent: false };
 
-  const [dev_battery] = await device.getData({ variables: ["bat", "battery_capacity"], qty: 1 });
+  const [dev_battery] = await device.getData({ variables: "bat", qty: 1 });
 
   if (dev_battery?.value) {
     await account.devices.paramSet(device_id, { ...dev_battery_param, value: String(dev_battery.value) });

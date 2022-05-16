@@ -7,18 +7,18 @@ import { findDashboardByExportID, findDashboardByConnectorID } from "../../lib/f
 import { fetchDeviceList } from "../../lib/fetchDeviceList";
 
 interface installDeviceParam {
-  account: Account;
+  account: Account; //script
   new_dev_name: string;
-  org_id: string;
+  org_id: string; //script
   network_id: string;
   connector: string;
   new_device_eui: string;
   type: string;
-  group_id?: string;
+  group_id: string; //script
+  subgroup_id?: string;
 }
 
-async function installDevice({ account, new_dev_name, org_id, network_id, connector, new_device_eui, type, group_id }: installDeviceParam) {
-  //data retention set to 1 month
+async function installDevice({ account, new_dev_name, org_id, network_id, connector, new_device_eui, type, subgroup_id, group_id }: installDeviceParam) {
   const device_data: DeviceCreateInfo = {
     name: new_dev_name,
     network: network_id,
@@ -38,12 +38,10 @@ async function installDevice({ account, new_dev_name, org_id, network_id, connec
       { key: "organization_id", value: org_id },
       { key: "device_type", value: "device" },
       { key: "sensor", value: type },
+      { key: "group_id", value: group_id },
+      { key: "subgroup_id", value: subgroup_id || "N/A" },
     ],
   };
-
-  if (group_id) {
-    new_tags.tags.push({ key: "group_id", value: group_id });
-  }
 
   await account.devices.edit(new_dev.device_id, new_tags);
 
@@ -53,24 +51,18 @@ async function installDevice({ account, new_dev_name, org_id, network_id, connec
 }
 
 export default async ({ config_dev, context, scope, account, environment }: RouterConstructorData) => {
-  const org_id = scope[0].device as string;
-  const org_dev = await Utils.getDevice(account, org_id);
+  const subgroup_id = scope[0].device as string;
+  const subgroup_dev = await Utils.getDevice(account, subgroup_id);
+  const { tags: subgroup_tags } = await subgroup_dev.info();
+  const org_id = subgroup_tags.find((tag) => tag.key === "organization_id").value;
+  const group_id = subgroup_tags.find((tag) => tag.key === "group_id").value;
 
-  const validate = validation("dev_validation", org_dev);
+  const validate = validation("dev_validation", subgroup_dev);
   validate("#VAL.REGISTERING#", "warning");
 
-  const sensor_qty = await fetchDeviceList(account, [
-    { key: "device_type", value: "device" },
-    { key: "organization_id", value: org_id },
-  ]);
-
-  if (sensor_qty.length >= 5) {
-    return validate("#VAL.LIMIT_OF_5_DEVICES_REACHED#", "danger");
-  }
   //Collecting data
   const new_dev_name = scope.find((x) => x.variable === "new_dev_name");
   const new_dev_eui = scope.find((x) => x.variable === "new_dev_eui");
-  const new_dev_group = scope.find((x) => x.variable === "new_dev_group");
   const new_dev_type = scope.find((x) => x.variable === "new_dev_type");
   const new_dev_network = scope.find((x) => x.variable === "new_dev_network");
 
@@ -83,15 +75,13 @@ export default async ({ config_dev, context, scope, account, environment }: Rout
   }
 
   //If choosing for the simulator, we generate a random EUI
-  const dev_eui = (new_dev_eui?.value as string)?.toUpperCase() || String(Math.ceil(Math.random() * 10000000));
+  const dev_eui = (new_dev_eui?.value as string)?.toUpperCase();
 
   const dev_exists: DeviceListItem[] = await fetchDeviceList(account, [], dev_eui);
 
   if (dev_exists.length > 0) {
     throw validate("#VAL.DEVICE_ALREADY_EXISTS#", "danger");
   }
-
-  const group_id = new_dev_group?.value as string;
 
   const connector_id = new_dev_type.value as string;
 
@@ -116,6 +106,7 @@ export default async ({ config_dev, context, scope, account, environment }: Rout
     connector: connector_id,
     new_device_eui: dev_eui,
     type: type.conditions[0].value,
+    subgroup_id,
     group_id,
   });
 
@@ -136,24 +127,35 @@ export default async ({ config_dev, context, scope, account, environment }: Rout
 
   await account.devices.paramSet(device_id, {
     key: "dashboard_url",
-    value: `https://admin.tago.io/dashboards/info/${dash_info.id}?org_dev=${org_id}&sensor=${device_id}`,
+    value: `https://admin.tago.io/dashboards/info/${dash_info.id}?org_dev=${org_id}&group_dev=${group_id}&sensor=${device_id}`,
     sent: false,
   });
 
   await account.devices.paramSet(device_id, { key: "dev_eui", value: dev_eui, sent: false });
-  await account.devices.paramSet(device_id, { key: "dev_group", value: (new_dev_group?.metadata?.label as string) || "", sent: false });
   await account.devices.paramSet(device_id, { key: "dev_lastcheckin", value: "-", sent: false });
   await account.devices.paramSet(device_id, { key: "dev_battery", value: "-", sent: false });
 
   // await config_dev.sendData(dev_data);
 
-  const add_to_dropdown_list = parseTagoObject({ asset_list: new_dev_name.value }, device_id);
-  await org_dev.sendData(dev_data.concat(add_to_dropdown_list));
+  // const add_to_dropdown_list = parseTagoObject({ asset_list: new_dev_name.value }, device_id);
+  // await org_dev.sendData(dev_data.concat(add_to_dropdown_list));
 
-  if (group_id) {
-    const group_dev = await Utils.getDevice(account, new_dev_group.value as string);
-    await group_dev.sendData(dev_data);
-  }
+  await subgroup_dev.sendData(dev_data);
+
+  //0109611395
 
   return validate("#VAL.DEVICE_CREATED_SUCCESSFULLY#", "success");
 };
+
+//Axioma Water Meter Qalcosonic W1  PAYLOAD EXAMPLE
+
+// [
+//   {
+//     "variable": "payload",
+//     "value": "5d35a00e30293500005D34B630e7290000b800b900b800b800b800b900b800b800b800b800b800b800b900b900b9009"
+//   },
+//     {
+//     "variable": "port",
+//     "value": 100
+//   }
+// ]

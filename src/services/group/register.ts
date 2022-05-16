@@ -27,6 +27,7 @@ async function installDevice({ account, new_group_name, org_id }: installDeviceP
   //inserting device id -> so we can reference this later
   await account.devices.edit(new_group.device_id, {
     tags: [
+      { key: "user_group_id", value: new_group.device_id },
       { key: "group_id", value: new_group.device_id },
       { key: "organization_id", value: org_id },
       { key: "device_type", value: "group" },
@@ -47,15 +48,6 @@ export default async ({ config_dev, context, scope, account, environment }: Rout
   const validate = validation("group_validation", org_dev);
   validate("#VAL.REGISTERING#", "warning");
 
-  const group_qty = await fetchDeviceList(account, [
-    { key: "device_type", value: "group" },
-    { key: "organization_id", value: org_id },
-  ]);
-
-  if (group_qty.length >= 2) {
-    return validate("#VAL.LIMIT_OF_2_GROUPS_REACHED#", "danger");
-  }
-
   //Collecting data
   // const new_group_org = scope.find((x) => x.variable === "new_group_org");
   const new_group_name = scope.find((x) => x.variable === "new_group_name");
@@ -73,39 +65,33 @@ export default async ({ config_dev, context, scope, account, environment }: Rout
 
   const { device_id: group_id, device: group_dev } = await installDevice({ account, new_group_name: new_group_name.value as string, org_id });
 
+  const dash_sensor_list_id = await findDashboardByExportID(account, "dash_sensor_list");
+
+  const url = `https://admin.tago.io/dashboards/info/${dash_sensor_list_id}?org_dev=${org_id}&group_dev=${group_id}`;
+
   const group_data = {
     group_id: {
       value: group_id,
       metadata: {
         label: new_group_name.value,
+        url,
       },
+      location: new_group_address.location,
     },
   };
 
-  const dash_organization_id = await findDashboardByExportID(account, "dash_groupview");
-
   await account.devices.paramSet(group_id, {
     key: "dashboard_url",
-    value: `https://admin.tago.io/dashboards/info/${dash_organization_id}?group_dev=${group_id}&org_dev=${org_id}`,
+    value: url,
     sent: false,
   });
   await account.devices.paramSet(group_id, { key: "group_address", value: (new_group_address?.value as string) || "N/A", sent: false });
 
   //send to organization device
   await org_dev.sendData(parseTagoObject(group_data, group_id));
+  await config_dev.sendData(parseTagoObject(group_data, org_id));
 
   //uploading a default layer
-  await group_dev.sendData({
-    value: "Layer #1",
-    variable: "layers",
-    metadata: {
-      file: {
-        path: "buckets/6127d8d10ceb400012b53fc3/layers/Floor Plan Right.png",
-        url: "https://api.tago.io/file/61b2f46e561da800197a9c43/Floor%20Plan%20with%20Watermark.png",
-        md5: "",
-      },
-    },
-  });
 
   return validate("#VAL.GROUP_SUCCESSFULLY_CREATED#", "success");
 };

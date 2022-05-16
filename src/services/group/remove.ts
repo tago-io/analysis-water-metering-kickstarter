@@ -1,5 +1,6 @@
 import { Utils } from "@tago-io/sdk";
 import { fetchDeviceList } from "../../lib/fetchDeviceList";
+import sendNotificationError from "../../lib/notificationError";
 import { RouterConstructorDevice } from "../../types";
 
 export default async ({ config_dev, context, scope, account, environment }: RouterConstructorDevice) => {
@@ -16,6 +17,8 @@ export default async ({ config_dev, context, scope, account, environment }: Rout
   await config_dev.deleteData({ groups: group_id, qty: 9999 });
   //delete from org_dev
   await org_dev.deleteData({ groups: group_id, qty: 9999 });
+
+  config_dev.deleteData({ variables: "group_id", values: group_id, qty: 1 });
 
   //deleting users (site's user)
   const user_accounts = await account.run.listUsers({ filter: { tags: [{ key: "group_id", value: group_id }] } });
@@ -39,4 +42,6 @@ export default async ({ config_dev, context, scope, account, environment }: Rout
       await config_dev.deleteData({ groups: x.id, qty: 9999 });
     });
   }
+
+  return await sendNotificationError(account, environment, `Building ${group_info.name} successfuly deleted!`, "Building deleted");
 };
