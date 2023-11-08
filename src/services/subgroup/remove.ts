@@ -1,4 +1,5 @@
 import { Utils } from "@tago-io/sdk";
+
 import { fetchDeviceList } from "../../lib/fetchDeviceList";
 import { RouterConstructorDevice } from "../../types";
 
@@ -19,7 +20,7 @@ export default async ({ config_dev, context, scope, account, environment }: Rout
 
   //removing subgroup tag
   device_list.forEach((device) => {
-    const device_tags = device.tags.filter((x) => x.key !== "subgroup_id");
+    const device_tags = device.tags.filter((x: any) => x.key !== "subgroup_id");
     device_tags.push({ key: "subgroup_id", value: "N/A" });
     account.devices.edit(device.id, { tags: device_tags });
   });

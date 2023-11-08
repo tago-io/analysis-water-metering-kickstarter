@@ -1,9 +1,9 @@
-import { launch, PaperFormat, PDFOptions } from "puppeteer";
 import axios from "axios";
-import { Account, Services } from "@tago-io/sdk";
 import moment from "moment";
-import { UserInfo } from "@tago-io/sdk/out/modules/Account/run.types";
-import { TagoContext } from "@tago-io/sdk/out/modules/Analysis/analysis.types";
+import { launch, PaperFormat, PDFOptions } from "puppeteer";
+
+import { Account, Services } from "@tago-io/sdk";
+import { TagoContext, UserInfo } from "@tago-io/sdk/lib/types";
 
 // ? ==================================== (c) TagoIO ====================================
 // ? What is in this file?

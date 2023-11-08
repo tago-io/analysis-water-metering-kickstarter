@@ -1,8 +1,9 @@
 import { Device, Types, Utils } from "@tago-io/sdk";
-import { DataToSend } from "@tago-io/sdk/out/modules/Device/device.types";
-import validation from "../../lib/validation";
-import registerUser from "../../lib/registerUser";
+import { DataToSend } from "@tago-io/sdk/lib/types";
+
 import { parseTagoObject } from "../../lib/data.logic";
+import registerUser from "../../lib/registerUser";
+import validation from "../../lib/validation";
 import { RouterConstructorData } from "../../types";
 
 interface UserData {
@@ -10,7 +11,7 @@ interface UserData {
   email: string;
   phone?: string | number | boolean | void;
   timezone: string;
-  tags?: Types.Common.TagsObj[];
+  tags?: Types.TagsObj[];
   password?: string;
   id?: string;
 }
@@ -106,14 +107,14 @@ export default async ({ config_dev, context, scope, account, environment }: Rout
 
   if (new_user_access.value === "orgadmin") {
     new_user_data.tags = new_user_data.tags.concat(
-      new_user_org.metadata.sentValues.map((x) => {
+      new_user_org.metadata.sentValues.map((x: any) => {
         return { key: "organization_id", value: x.value as string };
       })
     );
   } else if (new_user_access.value === "guest") {
     new_user_data.tags.push({ key: "user_org_id", value: new_user_org.value as string });
     new_user_data.tags.push({ key: "user_group_id", value: new_user_group.value as string });
-    new_user_subgroup.metadata.sentValues.map((sentValue) => {
+    new_user_subgroup.metadata.sentValues.map((sentValue: any) => {
       new_user_data.tags.push({ key: "subgroup_id", value: sentValue.value as string });
     });
   }

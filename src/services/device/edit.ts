@@ -1,5 +1,6 @@
-import { Device, Account, Utils } from "@tago-io/sdk";
-import getDevice from "@tago-io/sdk/out/modules/Utils/getDevice";
+import { Account, Device, Utils } from "@tago-io/sdk";
+import getDevice from "@tago-io/sdk/lib/modules/Utils/getDevice";
+
 import { parseTagoObject } from "../../lib/data.logic";
 import { findDashboardByConnectorID } from "../../lib/findResource";
 import { RouterConstructorDevice } from "../../types";
@@ -18,7 +19,6 @@ export default async ({ config_dev, context, scope, account, environment }: Rout
 
   const org_id = device_tags.find((x) => x.key === "organization_id").value;
   const org_dev = await getDevice(account, org_id);
-  const type = device_tags.find((x) => x.key === "sensor").value;
   const current_group_id = device_tags.find((x) => x.key === "group_id")?.value;
 
   //updating only the group's dev_id data

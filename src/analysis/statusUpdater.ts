@@ -14,11 +14,11 @@
  * - account_token: the value must be a token from your profile. See how to generate account-token at: https://help.tago.io/portal/en/kb/articles/495-account-token.
  */
 
-import { Utils, Services, Account, Device, Types, Analysis } from "@tago-io/sdk";
-import { Data } from "@tago-io/sdk/out/common/common.types";
-import { ConfigurationParams, DeviceListItem } from "@tago-io/sdk/out/modules/Account/devices.types";
-import { TagoContext } from "@tago-io/sdk/out/modules/Analysis/analysis.types";
 import moment from "moment-timezone";
+
+import { Account, Analysis, Device, Services, Types, Utils } from "@tago-io/sdk";
+import { Data, DeviceListItem, TagoContext } from "@tago-io/sdk/lib/types";
+
 import { parseTagoObject } from "../lib/data.logic";
 import { fetchDeviceList } from "../lib/fetchDeviceList";
 import { checkinTrigger } from "../services/alerts/checkinAlerts";
@@ -81,7 +81,7 @@ async function resolveDevice(context: TagoContext, account: Account, org_id: str
 
   await checkinTrigger(account, context, org_id, { device_id, last_input: device_info.last_input });
 
-  await account.devices.paramSet(device_id, { ...dev_lastcheckin_param, value: String(diff_hours), sent: diff_hours >= 24 ? true : false });
+  await account.devices.paramSet(device_id, { ...dev_lastcheckin_param, value: String(diff_hours), sent: Number(diff_hours) >= 24 ? true : false });
 }
 
 async function resolveOrg(account: Account, org_id: string) {
@@ -137,7 +137,12 @@ async function handler(context: TagoContext, scope: Data[]): Promise<void> {
   const sensorList = await fetchDeviceList(account, [{ key: "device_type", value: "device" }]);
 
   sensorList.map((device) =>
-    resolveDevice(context, account, device.tags.find((tag) => tag.key === "organization_id")?.value as string, device.tags.find((tag) => tag.key === "device_id")?.value as string)
+    resolveDevice(
+      context,
+      account,
+      device.tags.find((tag: any) => tag.key === "organization_id")?.value as string,
+      device.tags.find((tag: any) => tag.key === "device_id")?.value as string
+    )
   );
 }
 

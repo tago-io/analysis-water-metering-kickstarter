@@ -1,13 +1,12 @@
-import { Account, Services, Device, Types } from "@tago-io/sdk";
-import { TagsObj } from "@tago-io/sdk/out/common/common.types";
-import { TagoContext } from "@tago-io/sdk/out/modules/Analysis/analysis.types";
+import { Account, Device, Services, Types } from "@tago-io/sdk";
+import { TagoContext } from "@tago-io/sdk/lib/types";
 
 interface UserData {
   email: string;
   name: string;
   phone?: string | number | boolean | void;
   timezone: string;
-  tags?: Types.Common.TagsObj[];
+  tags?: Types.TagsObj[];
   password?: string;
 }
 

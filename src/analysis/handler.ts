@@ -17,29 +17,24 @@
  * - account_token: the value must be a token from your profile. generated at My Settings of your developer's account.
  */
 
-import { Utils, Account, Device, Analysis } from "@tago-io/sdk";
-import { Data } from "@tago-io/sdk/out/common/common.types";
-import { TagoContext } from "@tago-io/sdk/out/modules/Analysis/analysis.types";
+import { Account, Analysis, Device, Utils } from "@tago-io/sdk";
+import { Data, TagoContext } from "@tago-io/sdk/lib/types";
 
+import sensorEdit from "../services/device/edit";
+import sensorAdd from "../services/device/register";
+import sensorDel from "../services/device/remove";
+import groupEdit from "../services/group/edit";
+import groupAdd from "../services/group/register";
+import groupDel from "../services/group/remove";
 import orgEdit from "../services/organization/edit";
 import orgAdd from "../services/organization/register";
 import orgDel from "../services/organization/remove";
-
-import sensorAdd from "../services/device/register";
-import sensorDel from "../services/device/remove";
-import sensorEdit from "../services/device/edit";
-
-import groupAdd from "../services/group/register";
-import groupDel from "../services/group/remove";
-import groupEdit from "../services/group/edit";
-
+import subgroupEdit from "../services/subgroup/edit";
 import subgroupAdd from "../services/subgroup/register";
 import subgroupDel from "../services/subgroup/remove";
-import subgroupEdit from "../services/subgroup/edit";
-
+import userEdit from "../services/user/edit";
 import userAdd from "../services/user/register";
 import userDel from "../services/user/remove";
-import userEdit from "../services/user/edit";
 
 // import { createAlert } from "../services/alerts/register";
 // import { deleteAlert } from "../services/alerts/remove";

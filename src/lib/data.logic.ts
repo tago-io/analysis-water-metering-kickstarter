@@ -1,8 +1,9 @@
-import { DataToSend } from "@tago-io/sdk/out/modules/Device/device.types";
 // ? ==================================== (c) TagoIO ====================================
 // ? What is this file?
 // * This file is all logics of parseit (example script).
 // ? ====================================================================================
+
+import { DataToSend } from "@tago-io/sdk/lib/types";
 
 interface GenericBody {
   [index: string]: any;
