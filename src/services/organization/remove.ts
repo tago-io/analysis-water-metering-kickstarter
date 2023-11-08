@@ -1,4 +1,5 @@
-import { RouterConstructor } from "@tago-io/sdk/out/modules/Utils/router/router";
+import { RouterConstructor } from "@tago-io/sdk/lib/modules/Utils/router/router.types";
+
 import { fetchDeviceList } from "../../lib/fetchDeviceList";
 import sendNotificationError from "../../lib/notificationError";
 

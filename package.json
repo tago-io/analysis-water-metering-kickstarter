@@ -16,12 +16,6 @@
   "jest": {
     "preset": "ts-jest"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run test",
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
-    }
-  },
   "devDependencies": {
     "@tago-io/builder": "3.0.3",
     "@types/jest": "27.5.0",
@@ -34,7 +28,6 @@
     "eslint-plugin-import": "2.26.0",
     "eslint-plugin-jest": "26.1.5",
     "eslint-plugin-prettier": "4.0.0",
-    "husky": "4.3.8",
     "jest": "28.1.0",
     "prettier": "2.6.2",
     "ts-jest": "28.0.2",
@@ -43,7 +36,7 @@
     "typescript": "4.6.4"
   },
   "dependencies": {
-    "@tago-io/sdk": "10.7.8",
+    "@tago-io/sdk": "11.0.6",
     "axios": "0.27.2",
     "bson-objectid": "2.0.3",
     "dayjs": "1.11.2",

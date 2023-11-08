@@ -1,6 +1,6 @@
 import { Account } from "@tago-io/sdk";
-import { TagsObj } from "@tago-io/sdk/out/common/common.types";
-import { DeviceInfo, DeviceListItem } from "@tago-io/sdk/out/modules/Account/devices.types";
+import { DeviceListItem, TagsObj } from "@tago-io/sdk/lib/types";
+
 // ? ==================================== (c) TagoIO ====================================
 // ? What is this file?
 // * This file to fetch device list through pagination

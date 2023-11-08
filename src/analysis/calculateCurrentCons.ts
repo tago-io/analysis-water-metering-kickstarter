@@ -1,7 +1,5 @@
-import { Device, Account, Utils, Analysis } from "@tago-io/sdk";
-import { Data } from "@tago-io/sdk/out/common/common.types";
-import { TagoContext } from "@tago-io/sdk/out/modules/Analysis/analysis.types";
-import { DeviceInfo } from "@tago-io/sdk/out/modules/Device/device.types";
+import { Account, Analysis, Utils } from "@tago-io/sdk";
+import { Data, DeviceInfo, TagoContext } from "@tago-io/sdk/lib/types";
 
 async function sendVolumeToOrg(account: Account, meter_dev_info: DeviceInfo, current_volume_read: number) {
   const org_id = meter_dev_info.tags.find((t) => t.key === "organization_id")?.value;
@@ -32,7 +30,7 @@ async function calculateConsumption(context: TagoContext, scope: Data[]): Promis
   const status_code = scope.find((x) => x.variable === "status_code");
 
   const meter_dev = await Utils.getDevice(account, device_id);
-  const meter_dev_info = await meter_dev.info();
+  const meter_dev_info = (await meter_dev.info()) as DeviceInfo;
 
   //current_volume -> uplink from the sensor
   const [last_volume] = await meter_dev.getData({ variables: "current_volume", end_date: current_volume_read.time, skip: 1, qty: 1 });

@@ -1,6 +1,8 @@
-import { Account, Device } from "@tago-io/sdk";
-import { TagoContext } from "@tago-io/sdk/out/modules/Analysis/analysis.types";
 import moment from "moment";
+
+import { Account } from "@tago-io/sdk";
+import { TagoContext } from "@tago-io/sdk/lib/types";
+
 import { IAlertTrigger, sendAlert } from "./sendAlert";
 
 interface ICheckinParam {

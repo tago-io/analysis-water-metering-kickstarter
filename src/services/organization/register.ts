@@ -1,7 +1,8 @@
-import { Device, Account, Types } from "@tago-io/sdk";
-import { TagsObj } from "@tago-io/sdk/out/common/common.types";
-import { DeviceCreateInfo } from "@tago-io/sdk/out/modules/Account/devices.types";
 import moment from "moment";
+
+import { Account, Device } from "@tago-io/sdk";
+import { DeviceCreateInfo } from "@tago-io/sdk/lib/types";
+
 import { parseTagoObject } from "../../lib/data.logic";
 import { findAnalysisByExportID, findDashboardByExportID } from "../../lib/findResource";
 import validation from "../../lib/validation";

@@ -1,6 +1,6 @@
-import { Utils, Services, Account, Device, Analysis, Types } from "@tago-io/sdk";
-import { Data } from "@tago-io/sdk/out/common/common.types";
-import { TagoContext } from "@tago-io/sdk/out/modules/Analysis/analysis.types";
+import { Account, Analysis, Utils } from "@tago-io/sdk";
+import { Data, TagoContext } from "@tago-io/sdk/lib/types";
+
 import { fetchDeviceList } from "../lib/fetchDeviceList";
 
 async function condCons(context: TagoContext, scope: Data[]): Promise<void> {

@@ -1,10 +1,11 @@
-import { Device, Account, Types, Utils } from "@tago-io/sdk";
-import { DeviceCreateInfo } from "@tago-io/sdk/out/modules/Account/devices.types";
+import { Account, Device, Types, Utils } from "@tago-io/sdk";
+import { DeviceCreateInfo } from "@tago-io/sdk/lib/types";
+
+import { parseTagoObject } from "../../lib/data.logic";
+import { fetchDeviceList } from "../../lib/fetchDeviceList";
+import { findDashboardByExportID } from "../../lib/findResource";
 import validation from "../../lib/validation";
 import { DeviceCreated, RouterConstructorData } from "../../types";
-import { parseTagoObject } from "../../lib/data.logic";
-import { findDashboardByExportID } from "../../lib/findResource";
-import { fetchDeviceList } from "../../lib/fetchDeviceList";
 
 interface installDeviceParam {
   account: Account;
